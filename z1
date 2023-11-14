@@ -1,0 +1,58 @@
+#include <iostream>
+#include <fstream>
+#include <unordered_map>
+#include <string>
+
+void countLetterFrequency(const std::string& text, std::unordered_map<char, int>& freqMap) {
+    for (char c : text) {
+        if (!std::isalpha(c))
+            continue;
+
+        c = std::tolower(c);
+
+        freqMap[c]++;
+    }
+}
+
+void countTwoLetterFrequency(const std::string& text, std::unordered_map<std::string, int>& freqMap) {
+    for (size_t i = 0; i < text.length() - 1; i++) {
+        std::string twoLetter = text.substr(i, 2);
+
+        if (!std::isalpha(twoLetter[0]) || !std::isalpha(twoLetter[1]))
+            continue;
+
+        twoLetter[0] = std::tolower(twoLetter[0]);
+        twoLetter[1] = std::tolower(twoLetter[1]);
+
+        freqMap[twoLetter]++;
+    }
+}
+
+int main() {
+    std::ifstream inputFile("input.txt");
+    if (!inputFile) {
+        std::cerr << "Failed to open the input file." << std::endl;
+        return 1;
+    }
+
+    std::string text((std::istreambuf_iterator<char>(inputFile)),
+        std::istreambuf_iterator<char>());
+
+    std::unordered_map<char, int> letterFrequency;
+    countLetterFrequency(text, letterFrequency);
+
+    std::cout << "Letter frequencies:" << std::endl;
+    for (const auto& pair : letterFrequency) {
+        std::cout << pair.first << ": " << pair.second << std::endl;
+    }
+
+    std::unordered_map<std::string, int> twoLetterFrequency;
+    countTwoLetterFrequency(text, twoLetterFrequency);
+
+    std::cout << "Two-letter frequencies:" << std::endl;
+    for (const auto& pair : twoLetterFrequency) {
+        std::cout << pair.first << ": " << pair.second << std::endl;
+    }
+
+    return 0;
+}
