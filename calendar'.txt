@@ -1,0 +1,76 @@
+#include <iostream>
+#include <iomanip>
+using namespace std;
+bool isLeapYear(int year)
+{
+    return ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0);
+}
+
+int getDaysInMonth(int month, int year)
+{
+    if (month == 2) {
+        return isLeapYear(year) ? 29 : 28;
+    }
+    else if (month == 4 || month == 6 || month == 9 || month == 11) {
+        return 30;
+    }else {
+        return 31;
+    }
+}
+
+void printCalendar(int year){
+    setlocale(LC_ALL, "Rus");
+    cout << "Календарь для " << year << ":" << endl;
+
+    string monthNames[12] = { "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+                                   "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь" };
+
+    for (int month = 1; month <= 12; ++month) {
+        cout << "============================" << endl;
+        cout << monthNames[month - 1] << endl;
+        cout << "============================" << endl;
+        cout << "Пн Вт Ср Чт Пт Сб Вс" << endl;
+
+        int startDay = 1;
+        int startMonth = month;
+        int startYear = year;
+
+        if (month < 3) {
+            startMonth += 12;
+            startYear--;
+        }
+
+        int dayNumber = (startDay + 2 * startMonth + 3 * (startMonth + 1) / 5 + startYear + startYear / 4 - startYear / 100 + startYear / 400) % 7;
+
+        for (int chetchik = 0; chetchik < dayNumber; ++chetchik) {
+            cout << "   ";
+        }
+
+        int daysInMonth = getDaysInMonth(month, year);
+        for (int day = 1; day <= daysInMonth; ++day) {
+            cout << setw(2) << day << " ";
+
+            if ((day + dayNumber) % 7 == 0) {
+                cout << endl;
+            }
+        }
+
+        cout << endl;
+    }
+}
+
+int main()
+{
+    setlocale(LC_ALL, "Rus");
+    int year;
+    cout << "Введите год: ";
+    cin >> year;
+    if (year >= 1) {
+        printCalendar(year);
+    }
+    else {
+        cout << "Что ты ввел?";
+    }
+
+    return 0;
+}
