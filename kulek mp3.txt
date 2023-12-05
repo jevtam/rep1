@@ -1,0 +1,106 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+void inputBigInteger(std::vector<int>& num) {
+    std::string str;
+    std::cin >> str;
+    num.clear();
+    for (int chetchik = str.length() - 1; chetchik >= 0; --chetchik) {
+        num.push_back(str[chetchik] - '0');
+    }
+}
+
+void outputBigInteger(const std::vector<int>& num) {
+    for (int chetchik = num.size() - 1; chetchik >= 0; --chetchik) {
+        std::cout << num[chetchik];
+    }
+    std::cout << std::endl;
+}
+
+std::vector<int> add(const std::vector<int>& num1, const std::vector<int>& num2) {
+    std::vector<int> result(std::max(num1.size(), num2.size()) + 1, 0);
+    int carry = 0;
+    for (int chetchik = 0; chetchik < result.size(); ++chetchik) {
+        int sum = carry;
+        if (chetchik < num1.size()) {
+            sum += num1[chetchik];
+        }
+        if (chetchik < num2.size()) {
+            sum += num2[chetchik];
+        }
+        result[chetchik] = sum % 10;
+        carry = sum / 10;
+    }
+    if (result.back() == 0) {
+        result.pop_back();
+    }
+    return result;
+}
+
+std::vector<int> subtract(const std::vector<int>& num1, const std::vector<int>& num2) {
+    std::vector<int> result(num1.size(), 0);
+    int borrow = 0;
+    for (int chetchik = 0; chetchik < num1.size(); ++chetchik) {
+        int diff = num1[chetchik] - borrow;
+        if (chetchik < num2.size()) {
+            diff -= num2[chetchik];
+        }
+        if (diff < 0) {
+            diff += 10;
+            borrow = 1;
+        }
+        else {
+            borrow = 0;
+        }
+        result[chetchik] = diff;
+    }
+    while (result.back() == 0 && result.size() > 1) {
+        result.pop_back();
+    }
+    return result;
+}
+
+std::vector<int> multiply(const std::vector<int>& num1, const std::vector<int>& num2) {
+    std::vector<int> result(num1.size() + num2.size(), 0);
+    for (int chetchikOne = 0; chetchikOne < num1.size(); ++chetchikOne) {
+        int carry = 0;
+        for (int chetchikTwo = 0; chetchikTwo < num2.size(); ++chetchikTwo) {
+            int sum = result[chetchikOne + chetchikTwo] + num1[chetchikOne] * num2[chetchikTwo] + carry;
+            result[chetchikOne + chetchikTwo] = sum % 10;
+            carry = sum / 10;
+        }
+        if (carry > 0) {
+            result[chetchikOne + num2.size()] += carry;
+        }
+    }
+    while (result.back() == 0 && result.size() > 1) {
+        result.pop_back();
+    }
+    return result;
+}
+
+int main() {
+    std::vector<int> num1, num2;
+    setlocale(0, "RUS");
+
+    std::cout << "Введите первое число: ";
+    inputBigInteger(num1);
+
+    std::cout << "Введите второе число: ";
+    inputBigInteger(num2);
+
+    std::vector<int> sum = add(num1, num2);
+    std::cout << "Сумма: ";
+    outputBigInteger(sum);
+
+    std::vector<int> diff = subtract(num1, num2);
+    std::cout << "Разность: ";
+    outputBigInteger(diff);
+
+    std::vector<int> product = multiply(num1, num2);
+    std::cout << "Произведение: ";
+    outputBigInteger(product);
+
+    return 0;
+}
