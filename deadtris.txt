@@ -1,0 +1,141 @@
+#include <iostream>
+#include <conio.h>
+#include <cstdlib>
+#include <ctime>
+
+using namespace std;
+
+const int width = 10;
+const int height = 20;
+
+int score;
+int grid[width][height] = { 0 };
+int currentPiece[4][4];
+int currentX, currentY;
+
+enum eDirection { STOP = 0, LEFT, RIGHT, DOWN };
+eDirection dir;
+
+void GeneratePiece() {
+    int pieces[7][4][4] = {
+        {{1, 1, 1, 1}},          
+        {{1, 1, 1, 0}, {1, 0, 0, 0}},  
+        {{1, 1, 1, 0}, {0, 0, 1, 0}}, 
+        {{1, 1, 0, 0}, {1, 1, 0, 0}}, 
+        {{1, 1, 1, 0}, {0, 1, 0, 0}},  
+        {{1, 1, 0, 0}, {0, 1, 1, 0}},  
+        {{0, 1, 1, 0}, {1, 1, 0, 0}}   
+    };
+
+    int randPiece = rand() % 7;
+    for (int chetchikOne = 0; chetchikOne < 4; ++chetchikOne)
+        for (int chetchikTwo = 0; chetchikTwo < 4; ++chetchikTwo)
+            currentPiece[chetchikOne][chetchikTwo] = pieces[randPiece][chetchikOne][chetchikTwo];
+
+    currentX = width / 2 - 1;
+    currentY = 0;
+}
+
+void Draw() {
+    system("cls");
+
+    for (int chetchik = 0; chetchik < width + 2; ++chetchik)
+        cout << "#";
+    cout << endl;
+
+    for (int chetchikOne = 0; chetchikOne < height; ++chetchikOne) {
+        for (int chetchikTwo = 0; chetchikTwo < width; ++chetchikTwo) {
+            if (chetchikTwo == 0)
+                cout << "#";
+            if (chetchikOne >= currentY && chetchikOne < currentY + 4 && chetchikTwo >= currentX && chetchikTwo < currentX + 4 && currentPiece[chetchikOne - currentY][chetchikTwo - currentX] == 1)
+                cout << "X"; 
+            else if (grid[chetchikTwo][chetchikOne] == 1)
+                cout << "X"; 
+            else
+                cout << " ";
+            if (chetchikTwo == width - 1)
+                cout << "#";
+        }
+        cout << endl;
+    }
+
+    for (int chetchik = 0; chetchik < width + 2; ++chetchik)
+        cout << "#";
+    cout << endl;
+
+    cout << "Score:" << score << endl;
+}
+
+bool IsValidMove() {
+    for (int chetchikOne = 0; chetchikOne < 4; ++chetchikOne)
+        for (int chetchikTwo = 0; chetchikTwo < 4; ++chetchikTwo)
+            if (currentPiece[chetchikOne][chetchikTwo] == 1 && (grid[currentX + chetchikTwo][currentY + chetchikOne] == 1 || currentX + chetchikTwo < 0 || currentX + chetchikTwo >= width || currentY + chetchikOne >= height))
+                return false;
+    return true;
+}
+
+void MergePiece() {
+    for (int chetchikOne = 0; chetchikOne < 4; ++chetchikOne)
+        for (int chetchikTwo = 0; chetchikTwo < 4; ++chetchikTwo)
+            if (currentPiece[chetchikOne][chetchikTwo] == 1)
+                grid[currentX + chetchikTwo][currentY + chetchikOne] = 1;
+}
+
+void Input() {
+    if (_kbhit()) {
+        switch (_getch()) {
+        case 'a':
+            dir = LEFT;
+            break;
+        case 'd':
+            dir = RIGHT;
+            break;
+        case 's':
+            dir = DOWN;
+            break;
+        case 'x':
+            exit(0);
+        }
+    }
+}
+
+void Algorithm() {
+    switch (dir) {
+    case LEFT:
+        --currentX;
+        if (!IsValidMove())
+            ++currentX;
+        break;
+    case RIGHT:
+        ++currentX;
+        if (!IsValidMove())
+            --currentX;
+        break;
+    case DOWN:
+        ++currentY;
+        if (!IsValidMove()) {
+            --currentY;
+            MergePiece();
+            GeneratePiece();
+        }
+        break;
+    default:
+        break;
+    }
+
+    dir = STOP;
+}
+
+int main() {
+    srand(time(NULL));
+
+    GeneratePiece();
+
+    while (true) {
+        Draw();
+        Input();
+        Algorithm();
+    }
+
+    return 0;
+}
