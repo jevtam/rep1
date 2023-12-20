@@ -1,0 +1,168 @@
+#include <iostream>
+#include <conio.h>
+#include <cstdlib>
+#include <ctime>
+
+using namespace std;
+
+const int width = 50;
+const int height = 20;
+
+int snakeX, snakeY;
+int fruitX, fruitY;
+int score;
+int tailX[100], tailY[100];
+int nTail;
+enum eDirection { STOP = 0, LEFT, RIGHT, UP, DOWN };
+eDirection dir;
+
+void Setup() {
+    srand(time(NULL));
+    score = 0;
+    dir = STOP;
+    snakeX = width / 2;
+    snakeY = height / 2;
+    fruitX = rand() % width;
+    fruitY = rand() % height;
+}
+
+void Draw() {
+    system("cls");
+
+    for (int counter = 0; counter < width + 2; ++counter) {
+        cout << "#";
+    }
+    cout << endl;
+
+    for (int counterOne = 0; counterOne < height; ++counterOne) {
+        for (int counterTwo = 0; counterTwo < width; ++counterTwo) {
+            if (counterTwo == 0) {
+                cout << "#";
+            }
+            if (counterOne == snakeY && counterTwo == snakeX) {
+                cout << "O"; // Snake head
+            }
+            else if (counterOne == fruitY && counterTwo == fruitX) {
+                cout << "F"; // Fruit
+            }
+            else {
+                bool printTail = false;
+                for (int counterThree = 0; counterThree < nTail; ++counterThree) {
+                    if (tailX[counterThree] == counterTwo && tailY[counterThree] == counterOne) {
+                        cout << "o"; // Snake tail
+                        printTail = true;
+                    }
+                }
+                if (!printTail) {
+                    cout << " ";
+                }
+            }
+
+            if (counterTwo == width - 1) {
+                cout << "#";
+            }
+        }
+        cout << endl;
+    }
+
+    for (int chetchik = 0; chetchik < width + 2; ++chetchik) {
+        cout << "#";
+    }
+    cout << endl;
+
+    cout << "Score:" << score << endl;
+}
+
+void Input() {
+    if (_kbhit()) {
+        switch (_getch()) {
+        case 'a':
+            dir = LEFT;
+            break;
+        case 'd':
+            dir = RIGHT;
+            break;
+        case 'w':
+            dir = UP;
+            break;
+        case 's':
+            dir = DOWN;
+            break;
+        case 'x':
+            exit(0);
+        }
+    }
+}
+
+void Algorithm() {
+    int prevX = tailX[0];
+    int prevY = tailY[0];
+    int prev2X, prev2Y;
+    tailX[0] = snakeX;
+    tailY[0] = snakeY;
+    for (int chetchik = 1; chetchik < nTail; ++chetchik) {
+        prev2X = tailX[chetchik];
+        prev2Y = tailY[chetchik];
+        tailX[chetchik] = prevX;
+        tailY[chetchik] = prevY;
+        prevX = prev2X;
+        prevY = prev2Y;
+    }
+
+    switch (dir) {
+    case LEFT:
+        snakeX--;
+        break;
+    case RIGHT:
+        snakeX++;
+        break;
+    case UP:
+        snakeY--;
+        break;
+    case DOWN:
+        snakeY++;
+        break;
+    default:
+        break;
+    }
+
+    if (snakeX < 0) {
+        snakeX = width - 1;
+        dir = UP;
+    }
+    if (snakeX >= width) {
+        snakeX = 0;
+        dir = DOWN;
+    }
+    if (snakeY < 0) {
+        snakeY = height - 1;
+        dir = RIGHT;
+    }
+    if (snakeY >= height) {
+        snakeY = 0;
+        dir = LEFT;
+    }
+
+    for (int counter = 0; counter < nTail; ++counter)
+        if (tailX[counter] == snakeX && tailY[counter] == snakeY)
+            exit(0);
+
+    if (snakeX == fruitX && snakeY == fruitY) {
+        score += 10;
+        fruitX = rand() % width;
+        fruitY = rand() % height;
+        nTail++;
+    }
+}
+
+int main() {
+    Setup();
+
+    while (true) {
+        Input();
+        Algorithm();
+        Draw();
+    }
+
+    return 0;
+}
