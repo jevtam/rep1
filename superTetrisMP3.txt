@@ -1,0 +1,314 @@
+#include <iostream>
+#include <windows.h>
+#include <cstdlib>
+#include <ctime>
+#include <cstdio>
+#include <cstring>
+
+using namespace std;
+
+const int fieldWidth = 20;
+const int fieldHeight = 30;
+const int screenWidth = fieldWidth * 2;
+const int screenHeight = fieldHeight* 1.2;
+
+const char figureSymbol = 219;
+const char emptyCellOnMap = 176;
+const char downFigure = 178;
+
+typedef char tScreenMap[screenHeight][screenWidth];
+typedef char tFieldMap[fieldHeight][fieldWidth];
+
+const int shapeWidth = 4;
+const int shapeHeight = 4;
+typedef char tShape[shapeHeight][shapeWidth];
+
+char* shapesArray[] = {
+    (char*)".....**..**.....",
+    (char*)"....****........",
+    (char*)"....***..*......",
+    (char*)".....***.*......",
+    (char*)".....**.**......",
+};
+const int shapesArrayCnt = sizeof(shapesArray) / sizeof(shapesArray[0]);
+
+void setCursorPosition(int x, int y) {
+    COORD coord;
+    coord.X = x;
+    coord.Y = y;
+    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
+}
+
+class tScreen {
+    void setEnd() {
+        scr[screenHeight - 1][screenWidth - 1] = '\0';
+    }
+public:
+    tScreenMap scr;
+    tScreen() {
+        clear();
+    }
+    void clear() {
+        memset(scr, '.', sizeof(scr));
+    }
+    void show() {
+        setCursorPosition(0, 0);
+        setEnd();
+        cout << scr[0];
+    }
+};
+
+class tField {
+public:
+    tFieldMap field;
+    tField() {
+        clear();
+    }
+    void clear() {
+        memset(field, emptyCellOnMap, sizeof(field));
+    }
+    void put(tScreenMap& scr);
+    int burn();
+};
+
+class tFigure {
+    int abscissa, ordinate;
+    tShape vid;
+    char turn;
+    COORD coord[shapeWidth * shapeHeight];
+    int coordCnt;
+    tField* field = nullptr;
+public:
+    tFigure() {
+        memset(this, 0, sizeof(*this));
+    }
+    void setField(tField* _field) {
+        field = _field;
+    }
+    void shape(const char* _vid) {
+        memcpy(vid, _vid, sizeof(vid));
+    }
+    void pose(int _abscissa, int _ordinate) {
+        abscissa = _abscissa;
+        ordinate = _ordinate;
+        calculateCoordination();
+    }
+    char turnGet() {
+        return turn;
+    }
+    void turnSet(char _turn);
+    void put(tScreenMap& scr);
+    void put(tFieldMap& field);
+    bool move(int dabscissa, int dordinate);
+    int check();
+private:
+    void calculateCoordination();
+};
+
+class tGame {
+    tScreen screen;
+    tField field;
+    tFigure figure;
+    int score;
+    int tick;
+public:
+    tGame();
+    void playerControl();
+    void figureMove();
+    void show();
+};
+
+tGame::tGame() : score(0), tick(0) {
+    figure.setField(&field);
+    figure.shape(shapesArray[rand() % shapesArrayCnt]);
+    figure.pose(fieldWidth / 2 - shapeWidth / 2, 0);
+}
+
+void tGame::playerControl() {
+    static int trn = 0;
+    if (GetKeyState('W') < 0) {
+        trn += 1;
+    }
+    if (trn == 1) figure.turnSet(figure.turnGet() + 1), ++trn;
+    if (GetKeyState('W') >= 0) {
+        trn = 0;
+    }
+
+    if (GetKeyState('S') < 0) {
+        figure.move(0, 1);
+    }
+    if (GetKeyState('A') < 0) {
+        figure.move(-1, 0);
+    }
+    if (GetKeyState('D') < 0) {
+        figure.move(1, 0);
+    }
+}
+
+void tGame::show() {
+    screen.clear();
+    field.put(screen.scr);
+    figure.put(screen.scr);
+    setCursorPosition(screenWidth + 1, 0);
+    cout << "Score: " << score;
+
+    screen.show();
+}
+
+void tGame::figureMove() {
+    ++tick;
+    int speed = 5 - score / 10; // eвеличивание скорости с увеличением счета
+    if (tick >= speed) {
+        if (!figure.move(0, 1)) {
+            figure.put(field.field);
+            figure.shape(shapesArray[rand() % shapesArrayCnt]);
+            figure.pose(fieldWidth / 2 - shapeWidth / 2, 0);
+            int linesCleared = figure.check();
+            if (linesCleared > 0) {
+                score += linesCleared * 10;
+            }
+            if (figure.check() > 0) {
+                field.clear();
+                tick = 0;
+            }
+        }
+        field.burn();
+        tick = 0;
+    }
+}
+
+void tFigure::put(tScreenMap& scr) {
+    for (int count = 0;count < coordCnt;++count)
+        scr[coord[count].Y][coord[count].X * 2] = scr[coord[count].Y][coord[count].X * 2 + 1] = figureSymbol;
+}
+
+void tFigure::put(tFieldMap& field) {
+    for (int count = 0; count < coordCnt;++count)
+        field[coord[count].Y][coord[count].X] = downFigure;
+}
+
+void tFigure::turnSet(char _turn) {
+    int oldTurn = turn;
+    turn = (_turn > 3 ? 0 : (_turn < 0 ? 3 : _turn));
+    int chck = check();
+    if (chck == 0) return;
+    if (chck == 1) {
+        int xx = abscissa;
+        int k = (abscissa > (fieldWidth / 2) ? -1 : +1);
+        for (int count = 1;count < 3;++count) {
+            abscissa += k;
+            if (check() == 0) return;
+        }
+        abscissa = xx;
+    }
+    turn = oldTurn;
+    calculateCoordination();
+}
+
+bool tFigure::move(int dabscissa, int dordinate) {
+    int oldAbscissa = abscissa, oldOrdinate = ordinate;
+    pose(abscissa + dabscissa, ordinate + dordinate);
+    int checkk = check();
+    if (checkk >= 1) {
+        pose(oldAbscissa, oldOrdinate);
+        if (checkk == 2)
+            return false;
+    }
+    return true;
+}
+
+int tFigure::check() {
+    calculateCoordination();
+    for (int count = 0;count < coordCnt;++count)
+        if (coord[count].X < 0 || coord[count].X >= fieldWidth)
+            return 1;
+    for (int count = 0;count < coordCnt;++count)
+        if (coord[count].Y >= fieldHeight || field->field[coord[count].Y][coord[count].X] == downFigure)
+            return 2;
+
+    int linesCleared = 0;
+    for (int countOne = 0; countOne < fieldHeight; ++countOne) {
+        bool isLineFilled = true;
+        for (int countTwo = 0; countTwo < fieldWidth; ++countTwo) {
+            if (field->field[countOne][countTwo] != downFigure) {
+                isLineFilled = false;
+                break;
+            }
+        }
+        if (isLineFilled) {
+            for (int countThree = countOne; countThree > 0; --countThree) {
+                for (int countTwo = 0; countTwo < fieldWidth; ++countTwo) {
+                    field->field[countThree][countTwo] = field->field[countThree - 1][countTwo];
+                }
+            }
+            ++linesCleared;
+        }
+    }
+    return linesCleared;
+}
+
+void tFigure::calculateCoordination() {
+    int xx, yy;
+    coordCnt = 0;
+
+    yy = 0;
+    for (int countOne = 0; countOne < shapeWidth; ++countOne)
+        for (int countTwo = 0; countTwo < shapeHeight; ++countTwo)
+            if (vid[countTwo][countOne] == '*') {
+                if (turn == 0) {
+                    xx = abscissa + countOne, yy = ordinate + countTwo;
+                }
+                if (turn == 1) {
+                    xx = abscissa + (shapeHeight - countTwo - 1), yy = ordinate + countOne;
+                }
+                if (turn == 2) {
+                    xx = abscissa + (shapeWidth - countOne - 1), yy = ordinate + (shapeHeight - countTwo - 1);
+                }
+                if (turn == 3) {
+                    xx = abscissa + countTwo, yy = ordinate + (shapeHeight - countOne - 1) + (shapeWidth - shapeHeight);
+                }
+                coord[coordCnt].X = (short)xx;
+                coord[coordCnt].Y = (short)yy;
+                ++coordCnt;
+            }
+}
+
+void tField::put(tScreenMap& scr) {
+    for (int countOne = 0;countOne < fieldWidth;++countOne)
+        for (int countTwo = 0; countTwo < fieldHeight;++countTwo)
+            scr[countTwo][countOne * 2] = scr[countTwo][countOne * 2 + 1] = field[countTwo][countOne];
+}
+
+int tField::burn() {
+    int linesCleared = 0;
+    for (int countTwo = fieldHeight - 1;countTwo >= 0;--countTwo) {
+        static bool fillLine;
+        fillLine = true;
+        for (int countOne = 0;countOne < fieldWidth;++countOne)
+            if (field[countTwo][countOne] != downFigure)
+                fillLine = false;
+        if (fillLine) {
+            for (int ordinate = countTwo; ordinate >= 1;--ordinate)
+                memcpy(field[ordinate], field[ordinate - 1], sizeof(field[ordinate]));
+            ++linesCleared;
+        }
+    }
+    return linesCleared;
+}
+
+int main() {
+    char command[1000];
+    sprintf_s(command, "mode con cols=%d lines=%d", screenWidth, screenHeight);
+    system(command);
+
+    srand(time(0));
+    tGame game;
+    while (1) {
+        game.playerControl();
+        game.figureMove();
+        game.show();
+        if (GetKeyState(VK_ESCAPE) < 0) break;
+        Sleep(50);
+    }
+    return 0;
+}
